@@ -1,0 +1,294 @@
+---
+title: "Rare variant analysis in Family 10"
+author: "Yuliana Denisse Sosa Gómez"
+output:
+  html_document:
+    df_print: paged
+---
+
+# Load libraries
+
+```{r}
+library(dplyr)
+```
+
+# Load dataset
+
+```{r}
+# Load dataset
+data <- read.csv("~/bioinfo2/genomica-humana/FAM10.csv", header=TRUE)
+data
+```
+
+We identified 22,679 initial variants, in 52 columns. Described below:
+
+-   **X.CHR:** Chromosome
+
+-   **START:** Start position
+
+-   **END:** End position
+
+-   **REF:** Reference allele
+
+-   **ALT:** Alternate allele
+
+-   **ZYG:** Patient zygosity
+
+-   **FILTER:** Quality filter status indicating whether the variant passes filtering criteria; however, it is not recommended to rely on this filter because indels may be lost.
+
+-   **QUAL:** Read quality score (Phred)
+
+-   **RR:** Reference reads
+
+-   **VR:** Variant reads
+
+-   **TR:** Total reads
+
+-   **RATIO:** Ratio of variant reads to total reads (VR/TR)
+
+-   **GQ:** Genotype Quality – quality of the assigned genotype
+
+-   **PL:** Phred-scaled likelihoods
+
+-   **VCF_INFO:** Miscellaneous information from the VCF file
+
+-   **BAND:** Cytogenetic band where the variant is located
+
+-   **SNP17NF:** SNP identifier in an internal database or dbSNP build 17
+
+-   **ANNOTATION:** Functional consequence of the variant (e.g., missense, nonsense, splice site, intronic)
+
+-   **GENE:** Gene symbol
+
+-   **GENE_NAME:** Full gene name
+
+-   **ACCESSION:** Reference transcript accession number (e.g., NM_000059)
+
+-   **EXON:** Exon number containing the variant
+
+-   **NT_CHANGE:** Nucleotide-level change in HGVS nomenclature (e.g., c.185delAG)
+
+-   **AA_CHANGE:** Amino acid-level change in HGVS nomenclature (e.g., p.A57A)
+
+-   **ALL_TRX:** Annotation across all known transcripts of the gene
+
+-   **TGP_FREQ:** Allele frequency in the 1000 Genomes Project (1000GP)
+
+-   **ESP_FREQ:** Allele frequency in the Exome Sequencing Project (ESP/NHLBI)
+
+### Evolutionary Conservation Scores
+
+No conservation score should be interpreted in isolation. Multiple scores should be considered together and combined with in silico pathogenicity predictors.
+
+-   **GRANTHAM_SC:** Grantham Score; measures the physicochemical distance between amino acids based on composition, polarity, and volume. Higher values indicate more radical substitutions. Range: 0–200. Values \>150 are considered radical changes that may have functional impact.
+
+-   **PHASTCONS:** Multi-species conservation score (PhastCons); range 0–1. Values \>0.7 indicate conservation. Consult the original publication if using this score as supporting evidence.
+
+-   **GERP_ESP:** GERP score calculated from the ESP (Exome Sequencing Project); measures evolutionary constraint.
+
+-   **GERP:** Standard GERP (Genomic Evolutionary Rate Profiling) score. Measures the deficit of observed substitutions relative to expected substitutions across multiple mammals. Range: \<0 to ≥5. Values ≥2 indicate strong evolutionary constraint against new mutations.
+
+-   **PHYLOP_SC:** PhyloP site-specific conservation score.
+
+-   **PHYLOP_PRED:** Prediction based on PhyloP (conserved / accelerated). Negative values may indicate positive selection, whereas values ≥2 may provide evidence of significant conservation. Values close to 0 indicate neutrality.
+
+### Pathogenicity Predictors
+
+-   If a field contains a dot (.), the score could not be calculated (e.g., synonymous, intronic, intergenic variants, genes not included in vertebrate alignments, insufficient coverage, etc.).
+
+-   **LRT_SCORE:** Likelihood Ratio Test (LRT) score. Compares the probability that a codon evolves under purifying selection versus neutrality across 32 vertebrate species. Designed for missense variants in conserved coding regions. Range: 0–1 (neutral).
+
+-   **LRT_PRED:** LRT prediction (Deleterious / Neutral / Unknown).
+
+-   **SIFT_SCORE:** SIFT score; low values (\<0.05) predict a deleterious effect. Based on evolutionary conservation.
+
+-   **SIFT_PRED:** SIFT prediction (Damaging / Tolerated).
+
+-   **PPH2_SCORE:** PolyPhen-2 score; estimates the probability that a variant is damaging. Based on structural and sequence annotations, conservation, domain position, ligand interactions, and other features. Range: 0–1, with higher values indicating greater likelihood of damage.
+
+-   **PPH2_PRED:** PolyPhen-2 prediction (Benign / Possibly Damaging / Probably Damaging).
+
+-   **MTT_SCORE:** MutationTaster score. Based on conservation, splicing alterations, CpG content, known variants (ClinVar, OMIM), and predicted effects on protein and mRNA. Range: 0.5–1. Higher values indicate greater confidence in the prediction.
+
+-   **MTT_PRED:** MutationTaster prediction:
+
+    -   **disease_causing:** predicted disease-causing variant
+
+    -   **disease_causing_automatic:** truncating or splice-altering variant automatically classified as disease-causing
+
+    -   **polymorphism:** likely benign variant
+
+    -   **polymorphism_automatic:** previously reported benign variant
+
+-   **ESP_PPH2:** PolyPhen-2 score calculated using the ESP cohort.
+
+### Population and Family Frequencies
+
+-   **CHIMP:** Allele observed in chimpanzee (comparison with the ancestral primate allele)
+
+-   **EVS_ALLELES:** Allele count in the Exome Variant Server (EVS)
+
+-   **ESP_GENOTYPES:** Genotype distribution in the ESP database
+
+-   **EVE_ALT_FREQ:** Alternate allele frequency in EVE (another variant cohort)
+
+-   **EVE_HOM:** Number of alternate allele homozygotes in EVE
+
+    ### Family Data
+
+-   **Proband:ZYG:** Variant zygosity in the proband (index case)
+
+-   **Mother:ZYG:** Maternal zygosity
+
+-   **Father:ZYG:** Paternal zygosity
+
+-   **UASib:ZYG:** Zygosity in the unaffected sibling
+
+-   **UABSib:ZYG.1:** Zygosity in the second unaffected sibling
+
+## Pedigree
+
+![](Pedigree%20familia.jpeg){width="418"}
+
+# Variant filtering
+
+## Genomic coverage
+
+```{r}
+# At least 10 Total Reads per position
+data_flt = data[data$TR >= 10, ]
+data_flt
+```
+
+21,848 variants remaining, 831 were eliminated
+
+## Ratio of alternate allele
+
+```{r}
+# Filter variants with at least 20% of reads supporting the alternate allele -> RATIO
+data_flt = data_flt[data_flt$RATIO >= 0.20, ]
+data_flt
+```
+
+21,159 variants remaining, 689 were eliminated
+
+## Genotype quality
+
+```{r}
+# Filter by Genotype quality >= 30
+data_flt_3 = data_flt[data_flt$GQ >= 30, ]
+data_flt_3
+```
+
+21,053 variants remaining, 106 were eliminated
+
+## MAF Filtering
+
+Next, we filter variants based on allele frequencies. Several columns provide this information: `TGP_FREQ`, `ESP_FREQ` and `EVE_ALT_FREQ`.
+
+```{r}
+# Filter variants with allele frequency <1%
+data_flt_3 = data_flt_3[
+  (data_flt_3$TGP_FREQ < 0.01 | data_flt_3$TGP_FREQ == "na") & 
+  (data_flt_3$ESP_FREQ < 0.01 | data_flt_3$ESP_FREQ == "na") & 
+  (data_flt_3$EVE_ALT_FREQ < 0.01), ]
+data_flt_3
+```
+
+A total of 702 variants remain after excluding those that do not have an allele frequency below 0.01 in the 1000 Genomes Project, Exome Sequencing Project, and Exome Variant Server databases. Variants with missing values (NA) in any frequency column were retained to avoid losing potentially relevant information.
+
+```{r}
+# Remove rows lacking Exome Variant Server data 
+# (missing allele counts, missing genotype information, 
+# and frequency artificially reported as 0)
+data_flt_4 = data_flt_3[-which(data_flt_3$EVS_ALLELES == "na" & 
+                                 data_flt_3$ESP_GENOTYPES == 0 & 
+                                 data_flt_3$EVE_ALT_FREQ == 0.000000000), ]
+data_flt_4
+```
+
+This leaves 526 rare variants with frequencies below 1% across multiple databases, excluding records with potentially biased missing data.
+
+## Exclusion of synonym mutations
+
+```{r}
+# Remove synonymous variants; retain nonsynonymous and truncating variants
+data_flt5 = data_flt_4[
+  !(data_flt_4$ANNOTATION == "synonymous SNV"), ]
+data_flt5
+```
+
+A total of 333 candidate variants remain.
+
+## Exclusion of homozygosity in family members
+
+If a parent or sibling were homozygous for a given variant, symptoms would be expected. Therefore, variants that are homozygous in unaffected family members can be excluded.
+
+```{r}
+data_flt6 = data_flt5[
+  !(data_flt5$Mother.ZYG == "Mother:hom" | 
+    data_flt5$Father.ZYG == "Father:hom" | 
+    data_flt5$UASib.ZYG == "UASib:hom"  | 
+    data_flt5$UASib.ZYG.1 == "UASib:hom"), 
+]
+data_flt6
+```
+
+A total of 320 variants remain.
+
+## Filtering according to pedigree
+
+### Autosomal recessive
+
+We aim for a homozygous proband and both parents heterozygous for the same mutation.
+
+```{r}
+# Filter with recessive model 
+recesiva = data_flt6[ 
+  data_flt6$Proband.ZYG == "Proband:hom" &
+  data_flt6$Mother.ZYG == "Mother:het" &    
+  data_flt6$Father.ZYG == "Father:het", ]  
+
+# Arrange according to patogenicity score 
+recesiva_ordenados <- arrange(recesiva, desc(MTT_SCORE)) 
+recesiva_ordenados
+```
+
+We found seven variants for autosomal recessive model.
+
+### Mutaciones de novo
+
+We aim for a mutation that is only present in the proband, and no one else in the family.
+
+```{r}
+# Filter with de novo conditions
+variantes_novo = data_flt6[
+  (data_flt6$Mother.ZYG == "Mother:na" & 
+    data_flt6$Father.ZYG == "Father:na" & 
+    data_flt6$UASib.ZYG == "UASib:na"  & 
+    data_flt6$UASib.ZYG.1 == "UASib:na"), 
+]
+
+# Arrange according to patogenicity score
+variantes_novo_ord <- arrange(variantes_novo, desc(MTT_SCORE))
+variantes_novo_ord
+```
+
+We found six *de novo* mutations.
+
+### Compound heterozygosity
+
+We aim for a gene that appears twice, different mutations in both parents.
+
+```{r}
+tabla_genes = table(data_flt6$GENE)
+genes_candidatos = names(tabla_genes[tabla_genes >= 2])
+
+het_compuestos = data_flt6[data_flt6$GENE %in% genes_candidatos, ]
+het_compuestos
+
+# Filter the only gene that appears twice from different parents
+het_compuestos[het_compuestos$GENE == "TMC6", ]
+```
+
+We found one gene candidate for compound heterozygosity
